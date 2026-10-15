@@ -179,7 +179,9 @@ const fill = new THREE.DirectionalLight(0xffffff, 0.5);
 fill.position.set(-80, 40, -30);
 scene.add(fill);
 
-const material = new THREE.MeshStandardMaterial({ color: 0x9a6bb4, roughness: 0.6, metalness: 0.03 });
+// Placa en violeta y puntos en ámbar (solo en la vista previa; el STL es una sola pieza)
+const plateMaterial = new THREE.MeshStandardMaterial({ color: 0x9a6bb4, roughness: 0.6, metalness: 0.03 });
+const dotMaterial = new THREE.MeshStandardMaterial({ color: 0xe8a838, roughness: 0.45, metalness: 0.03 });
 
 // El modelo está en XY (Z arriba); lo giramos para que Z quede arriba en pantalla.
 const displayGroup = new THREE.Group();
@@ -214,16 +216,32 @@ function frameCamera(width, height, thickness) {
   camera.updateProjectionMatrix();
 }
 
-function showPreview(vertProperties, triVerts) {
+function showPreview(vertProperties, triVerts, thickness) {
   if (currentMesh) {
     displayGroup.remove(currentMesh);
     currentMesh.geometry.dispose();
   }
+
+  // Un triángulo es "de punto" si alguno de sus vértices queda por encima de la placa
+  const eps = 1e-3;
+  const plateIdx = [];
+  const dotIdx = [];
+  for (let t = 0; t < triVerts.length; t += 3) {
+    const a = triVerts[t], b = triVerts[t + 1], c = triVerts[t + 2];
+    const esPunto =
+      vertProperties[a * 3 + 2] > thickness + eps ||
+      vertProperties[b * 3 + 2] > thickness + eps ||
+      vertProperties[c * 3 + 2] > thickness + eps;
+    (esPunto ? dotIdx : plateIdx).push(a, b, c);
+  }
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(vertProperties, 3));
-  geometry.setIndex(new THREE.BufferAttribute(triVerts, 1));
+  geometry.setIndex(new THREE.BufferAttribute(Uint32Array.from([...plateIdx, ...dotIdx]), 1));
+  geometry.addGroup(0, plateIdx.length, 0);
+  geometry.addGroup(plateIdx.length, dotIdx.length, 1);
   geometry.computeVertexNormals();
-  currentMesh = new THREE.Mesh(geometry, material);
+  currentMesh = new THREE.Mesh(geometry, [plateMaterial, dotMaterial]);
   displayGroup.add(currentMesh);
 }
 
@@ -271,7 +289,7 @@ async function generatePreview() {
     await nextFrame();
 
     const r = generarCartel(ManifoldCls, texto, p);
-    showPreview(r.vertProperties, r.triVerts);
+    showPreview(r.vertProperties, r.triVerts, p.thickness);
     frameCamera(r.layout.width, r.layout.height, p.thickness);
     lastSTL = r.stl;
     downloadBtn.disabled = false;
