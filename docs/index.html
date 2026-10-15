@@ -102,18 +102,21 @@ Dirección</textarea>
         </div>
       </section>
 
-      <div class="card">
-        <p class="card-label">Placa</p>
+      <details class="card panel" id="settings-panel">
+        <summary>
+          <span class="card-label">Ajustes de placa y puntos braille</span>
+          <span class="panel-hint">Medidas en mm · valores estándar</span>
+        </summary>
+        <div class="panel-body">
+          <h2 class="subhead">Placa</h2>
         <div class="row"><label for="maxCells">Celdas máx. por línea (0 = sin límite)</label><input type="number" id="maxCells" min="0" max="60" step="1"></div>
         <div class="row"><label for="thickness">Grosor de la placa (mm)</label><input type="number" id="thickness" min="1" max="10" step="0.1"></div>
         <div class="row"><label for="margin">Margen (mm)</label><input type="number" id="margin" min="2" max="30" step="0.5"></div>
         <div class="row"><label for="cornerRadius">Esquinas redondeadas (mm)</label><input type="number" id="cornerRadius" min="0" max="20" step="0.5"></div>
         <div class="check"><input type="checkbox" id="holes"><label for="holes">Dos agujeros de fijación (a los lados)</label></div>
         <div class="row"><label for="holeDiameter">Diámetro del agujero (mm)</label><input type="number" id="holeDiameter" min="1.5" max="10" step="0.1"></div>
-      </div>
 
-      <div class="card">
-        <p class="card-label">Puntos braille</p>
+          <h2 class="subhead">Puntos braille</h2>
         <div class="row"><label for="dotDiameter">Diámetro del punto (mm)</label><input type="number" id="dotDiameter" min="1" max="3" step="0.1"></div>
         <div class="row"><label for="dotHeight">Altura del punto (mm)</label><input type="number" id="dotHeight" min="0.3" max="1.5" step="0.05"></div>
         <div class="row"><label for="dotSpacing">Separación entre puntos (mm)</label><input type="number" id="dotSpacing" min="2" max="4" step="0.1"></div>
@@ -121,7 +124,8 @@ Dirección</textarea>
         <div class="row"><label for="lineSpacing">Separación entre líneas (mm)</label><input type="number" id="lineSpacing" min="7" max="16" step="0.5"></div>
         <p class="note">Valores por defecto: braille «Marburg Medium» (punto 1,5 mm, 2,5 mm entre puntos, 6 mm entre celdas, 10 mm entre líneas), pensado para impresión 3D. Con boquilla de 0,4 mm, mejor altura de punto ≥ 0,6 mm.</p>
         <button type="button" class="link" id="reset-btn">Restaurar medidas estándar</button>
-      </div>
+        </div>
+      </details>
 
       <div class="actions">
         <button class="btn primary" id="generate-btn" type="button" disabled>Generar cartel</button>
