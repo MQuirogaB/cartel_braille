@@ -49,3 +49,60 @@ for (const variante of [{}, { holes: true }, { cornerRadius: 0 }]) {
   toDelete.forEach((t) => { try { t.delete(); } catch {} });
 }
 console.log("geometría OK");
+
+// ---------------------------------------------------------------------
+// Modo por lotes
+// ---------------------------------------------------------------------
+import JSZip from "jszip";
+import { parsearLote, nombresArchivo, slug } from "../docs/batch.js";
+import { generarCartel } from "../docs/generate.js";
+
+// parseo
+let it = parsearLote("Aula 1\n\n  Biblioteca  \r\nLab\n", "linea");
+assert.deepEqual(it.map((x) => x.texto), ["Aula 1", "Biblioteca", "Lab"]);
+assert.deepEqual(it.map((x) => x.numero), [1, 2, 3]);
+it = parsearLote("Planta 1\nAula 1\n\nPlanta 2\nAula 2\n\n\nSótano", "bloque");
+assert.deepEqual(it.map((x) => x.texto), ["Planta 1\nAula 1", "Planta 2\nAula 2", "Sótano"]);
+
+// nombres de archivo
+assert.equal(slug("¡Feliz cumpleaños, Ana!"), "feliz-cumpleanos-ana");
+assert.equal(slug("€€€"), "cartel");
+const nombres = nombresArchivo(parsearLote("Hola\nHola\nÁrbol", "linea"));
+assert.deepEqual(nombres, ["01-hola.stl", "02-hola.stl", "03-arbol.stl"]);
+assert.equal(new Set(nombres).size, nombres.length, "nombres únicos aunque el texto se repita");
+
+// lote real con un elemento que no produce puntos
+{
+  const wasm2 = await Module(); wasm2.setup();
+  const p = { ...DEFAULTS };
+  const items = parsearLote("Aula 1\nBiblioteca\n€€€\nPlanta 2\nAula 2", "linea").map((x, i) =>
+    i === 3 ? { ...x, texto: "Planta 2\nAula 2" } : x);
+  const names = nombresArchivo(items);
+  const zip = new JSZip();
+  const errors = [];
+  for (let i = 0; i < items.length; i++) {
+    try {
+      const r = generarCartel(wasm2.Manifold, items[i].texto, p);
+      zip.file(names[i], r.stl);
+    } catch (e) { errors.push({ numero: items[i].numero, error: e.message }); }
+  }
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].numero, 3);
+  assert.match(errors[0].error, /ningún punto/);
+
+  const buf = await zip.generateAsync({ type: "nodebuffer" });
+  const back = await JSZip.loadAsync(buf);
+  const ficheros = Object.keys(back.files).sort();
+  assert.deepEqual(ficheros, ["01-aula-1.stl", "02-biblioteca.stl", "04-planta-2.stl", "05-aula-2.stl"]);
+  for (const f of ficheros) {
+    const data = await back.files[f].async("nodebuffer");
+    const tris = data.readUInt32LE(80);
+    assert.equal(data.length, 84 + tris * 50, `STL ${f}: tamaño coherente con su cabecera`);
+    assert.ok(tris > 1000, `STL ${f} tiene geometría`);
+  }
+  // el cartel de dos líneas es más alto que el de una
+  const a = await back.files["01-aula-1.stl"].async("nodebuffer");
+  const b = await back.files["04-planta-2.stl"].async("nodebuffer");
+  assert.ok(b.length > a.length);
+  console.log("lote OK →", ficheros.join(", "), "| error esperado en cartel 3:", errors[0].error);
+}

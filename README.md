@@ -12,6 +12,12 @@ navegador: no se sube nada a ningún servidor.
 - Placa con esquinas redondeadas opcionales y **dos agujeros de fijación**
   opcionales.
 - Ajuste automático de línea (celdas máximas por línea) y saltos de línea propios.
+- **Modo por lotes**: un cartel por línea (o separados por una línea en blanco) →
+  un ZIP con un STL por cartel y un `lista.csv` con el índice. Barra de progreso,
+  botón de abortar y resumen de errores por cartel. Los ajustes de placa y puntos
+  valen para todo el lote.
+- Estética de [miguelquiroga.es](https://miguelquiroga.es) (fondo blanco, acento violeta,
+  títulos en serif).
 
 ## Uso
 
@@ -38,4 +44,8 @@ Comprueba la tabla braille, el ajuste de línea y que la malla generada es váli
 
 - `docs/braille.js`: texto → celdas braille y maquetación.
 - `docs/plate.js`: medidas, posición de los puntos y construcción del sólido.
-- `docs/app.js`: interfaz, vista previa 3D y exportación STL.
+- `docs/generate.js`: genera un cartel (malla + STL) a partir de texto y parámetros.
+- `docs/batch.js`: parte el texto del lote en carteles y calcula los nombres de archivo.
+- `docs/stl.js`: STL binario.
+- `docs/app.js`: interfaz (modo simple y por lotes), vista previa 3D y descargas.
+- `docs/style.css`: estilos.
