@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartel braille · generador online</title>
+<meta name="description" content="Convierte un texto en una placa con braille en relieve (español, grado 1) y descarga el STL para imprimir en 3D, directamente en el navegador.">
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --panel-3: #262b36;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #9aa2b1;
+    --accent: #f2c94c;
+    --accent-2: #f7d774;
+    --danger: #e5534b;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  #app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: 100vh;
+  }
+  @media (max-width: 860px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: auto 60vh; height: auto; min-height: 100vh; }
+  }
+  #panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+  }
+  #viewport-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  h1 {
+    font-size: 17px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  h1 .emoji { font-size: 20px; }
+  .subtitle {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin: 0 0 18px;
+    line-height: 1.4;
+  }
+  .subtitle a { color: var(--accent-2); }
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px 14px;
+    margin: 0 0 14px;
+  }
+  legend {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    padding: 0 6px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .row label {
+    flex: 0 0 150px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .row input[type="number"] {
+    width: 72px;
+  }
+  input, select {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  select { width: 100%; }
+  input[type="range"] { flex: 1; padding: 0; accent-color: var(--accent); }
+
+  .fixed-dims {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .fixed-dims b { color: var(--text); font-weight: 600; }
+  .fixed-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .toggle-row label { font-size: 12.5px; color: var(--muted); }
+
+  .fixed-hole-note {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .face-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: var(--panel-2);
+  }
+  .face-card .face-name {
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--accent-2);
+    text-transform: capitalize;
+  }
+  .emoji-picker-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 26px;
+    padding: 8px;
+    background: var(--panel-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .emoji-picker-btn .hint {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .emoji-grid {
+    display: none;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    background: var(--panel-3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+  }
+  .emoji-grid.open { display: grid; }
+  .emoji-grid button {
+    font-size: 19px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+  .emoji-grid button:hover { background: var(--panel-2); }
+
+  .mini-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .mini-row > div { flex: 1; }
+  .mini-row label {
+    display: block;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .mini-row input { width: 100%; }
+
+  button.action {
+    font: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  #generate-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #1a1608;
+    margin-top: 4px;
+  }
+  #generate-btn:disabled { opacity: .55; cursor: wait; }
+  #download-btn {
+    width: 100%;
+    margin-top: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  #download-btn:disabled { opacity: .4; cursor: not-allowed; }
+  #status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    min-height: 32px;
+    line-height: 1.4;
+    white-space: pre-line;
+  }
+  #status.error { color: var(--danger); }
+  #viewport {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+  #canvas-holder { width: 100%; height: 100%; display: block; }
+  #hint {
+    position: absolute;
+    left: 14px;
+    bottom: 12px;
+    font-size: 11.5px;
+    color: var(--muted);
+    background: rgba(15,17,21,.6);
+    padding: 4px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+  }
+  #stats {
+    position: absolute;
+    right: 14px;
+    top: 12px;
+    font-size: 11.5px;
+    color: var(--muted);
+    background: rgba(15,17,21,.6);
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-align: right;
+  }
+  details.advanced summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 2px 0 8px;
+  }
+
+  textarea#texto {
+    width: 100%; min-height: 96px; resize: vertical;
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 10px; font: inherit; font-size: 14px; line-height: 1.4;
+  }
+  #braille-preview {
+    margin-top: 8px; padding: 8px 10px; min-height: 40px;
+    background: var(--panel-3); border: 1px solid var(--border); border-radius: 8px;
+    font-size: 22px; line-height: 1.5; letter-spacing: 3px; white-space: pre-wrap;
+    word-break: break-all; color: var(--accent-2);
+  }
+  #warn { font-size: 11.5px; color: var(--danger); margin-top: 6px; min-height: 0; }
+  button.link {
+    font: inherit; background: none; border: none; color: var(--accent-2);
+    cursor: pointer; font-size: 12px; padding: 0; margin-top: 4px; text-decoration: underline;
+  }
+  .row label { flex: 0 0 170px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <h1><span class="emoji">⠃</span> Cartel braille</h1>
+    <p class="subtitle">
+      Escribe un texto y obtén una placa con los puntos braille en relieve,
+      lista para imprimir en 3D — todo en tu navegador, sin subir nada a
+      ningún servidor.
+      <a href="https://github.com/MQuirogaB/cartel_braille" target="_blank" rel="noopener">Ver código ↗</a>
+    </p>
+
+    <fieldset>
+      <legend>Texto</legend>
+      <textarea id="texto" spellcheck="false" placeholder="Escribe aquí…">Hola, mundo</textarea>
+      <div id="braille-preview" aria-live="polite"></div>
+      <div id="warn"></div>
+      <p class="fixed-note">Braille español, grado 1 (letra a letra): mayúsculas, números, ñ, acentos, ü y puntuación habitual. Cada salto de línea es una línea nueva del cartel.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Placa</legend>
+      <div class="row"><label for="maxCells">Celdas máx. por línea</label><input type="number" id="maxCells" min="0" max="60" step="1"></div>
+      <div class="row"><label for="thickness">Grosor placa (mm)</label><input type="number" id="thickness" min="1" max="10" step="0.1"></div>
+      <div class="row"><label for="margin">Margen (mm)</label><input type="number" id="margin" min="2" max="30" step="0.5"></div>
+      <div class="row"><label for="cornerRadius">Esquinas redondeadas (mm)</label><input type="number" id="cornerRadius" min="0" max="20" step="0.5"></div>
+      <div class="toggle-row">
+        <input type="checkbox" id="holes">
+        <label for="holes">Dos agujeros de fijación (a los lados)</label>
+      </div>
+      <div class="row"><label for="holeDiameter">Diámetro agujero (mm)</label><input type="number" id="holeDiameter" min="1.5" max="10" step="0.1"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Puntos braille</legend>
+      <div class="row"><label for="dotDiameter">Diámetro del punto (mm)</label><input type="number" id="dotDiameter" min="1" max="3" step="0.1"></div>
+      <div class="row"><label for="dotHeight">Altura del punto (mm)</label><input type="number" id="dotHeight" min="0.3" max="1.5" step="0.05"></div>
+      <div class="row"><label for="dotSpacing">Separación entre puntos (mm)</label><input type="number" id="dotSpacing" min="2" max="4" step="0.1"></div>
+      <div class="row"><label for="cellSpacing">Separación entre celdas (mm)</label><input type="number" id="cellSpacing" min="4" max="9" step="0.1"></div>
+      <div class="row"><label for="lineSpacing">Separación entre líneas (mm)</label><input type="number" id="lineSpacing" min="7" max="16" step="0.5"></div>
+      <p class="fixed-note">Valores por defecto: braille «Marburg Medium» (punto 1,5 mm, 2,5 mm entre puntos, 6 mm entre celdas, 10 mm entre líneas), pensado para impresión 3D. Con boquilla de 0,4 mm, mejor altura de punto ≥ 0,6 mm.</p>
+      <button type="button" class="link" id="reset-btn">Restaurar medidas estándar</button>
+    </fieldset>
+
+    <button class="action" id="generate-btn" disabled>Generar cartel</button>
+    <button class="action" id="download-btn" disabled>Descargar STL</button>
+    <div id="status">Cargando el motor 3D…</div>
+  </div>
+
+  <div id="viewport-col">
+    <div id="viewport">
+      <div id="canvas-holder"></div>
+      <div id="stats"></div>
+      <div id="hint">Arrastra para rotar · rueda para zoom</div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "manifold-3d": "https://cdn.jsdelivr.net/npm/manifold-3d@3.1.1/manifold.js"
+  }
+}
+</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
